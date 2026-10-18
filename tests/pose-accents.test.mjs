@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {PoseAccents} from '../src/pose-accents.mjs';
+test('a pose must be stable, and holding it never repeats',()=>{const p=new PoseAccents();assert.equal(p.update('roll',false,0),null);assert.equal(p.update('roll',false,200),null);assert.equal(p.update('roll',false,240),'roll');for(let t=300;t<5000;t+=100)assert.equal(p.update('roll',false,t),null);});
+test('changing directly between special poses cannot retrigger',()=>{const p=new PoseAccents();p.update('roll',false,0);p.update('roll',false,240);p.update('strum',false,1800);assert.equal(p.update('strum',false,2100),null);});
+test('neutral palm must be sustained before a new accent',()=>{const p=new PoseAccents();p.update('roll',false,0);p.update('roll',false,240);p.update(null,true,1600);p.update('roll',false,1700);assert.equal(p.update('roll',false,2000),null);p.update(null,true,2100);p.update(null,true,2300);p.update('strum',false,2400);assert.equal(p.update('strum',false,2650),'strum');});
+test('tracking loss requires a neutral palm before retriggering',()=>{const p=new PoseAccents();p.update('roll',false,0);p.lose();p.update('roll',false,2000);assert.equal(p.update('roll',false,2300),null);p.update(null,true,2500);p.update(null,true,2700);p.update('orbit-left',false,2800);assert.equal(p.update('orbit-left',false,3050),'orbit-left');});
+test('neutral rearming cannot bypass the 1200 ms cooldown',()=>{const p=new PoseAccents();p.update('roll',false,0);p.update('roll',false,240);p.update(null,true,300);p.update(null,true,500);p.update('strum',false,600);assert.equal(p.update('strum',false,850),null);assert.equal(p.update('strum',false,1450),'strum');});
